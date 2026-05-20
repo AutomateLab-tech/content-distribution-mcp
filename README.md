@@ -1,6 +1,6 @@
 # Content Distribution MCP
 
-A model-agnostic [Model Context Protocol](https://modelcontextprotocol.io/) server that takes a finished piece of content and routes it to developer-community platforms - DEV.to, Hashnode, GitHub Discussions, Reddit, LinkedIn, and Medium - with idempotent state management, per-subreddit anti-spam rules, and dual [[notion]]/YAML backends.
+A model-agnostic [Model Context Protocol](https://modelcontextprotocol.io/) server that takes a finished piece of content and routes it to developer-community platforms - DEV.to, Hashnode, GitHub Discussions, Bluesky, Reddit, LinkedIn, Medium, and Twitter - with idempotent state management and dual [[notion]]/YAML backends.
 
 The server makes no LLM calls of any kind. All copy transformation is the caller's responsibility. The MCP hands back per-channel constraints via the `hints()` tool; the agent decides what to do with them.
 
@@ -26,13 +26,6 @@ The host process supplies credentials (constructor args, env vars, or via the St
 
 ```bash
 pip install content-distribution-mcp
-```
-
-Browser-fallback extras (Medium / LinkedIn / Twitter Playwright pre-fill):
-
-```bash
-pip install content-distribution-mcp[browser]
-playwright install chromium
 ```
 
 Bluesky extras:
@@ -124,7 +117,7 @@ Eight tools. Full docstrings in [spec.md](spec.md#12-mcp-tool-surface).
 +---------------------+
 ```
 
-See [spec.md](spec.md) for the full data model, idempotency design, Reddit gate logic, scheduling semantics, and integration notes.
+See [spec.md](spec.md) for the full data model, idempotency design, scheduling semantics, and integration notes.
 
 ## Backends
 
@@ -141,9 +134,9 @@ Both implement the same `StateBackend` Protocol. The MCP picks the backend from 
 | Hashnode | Auto | GraphQL, native `originalArticleURL` |
 | GitHub Discussions | Auto | GraphQL per-repo, footer for canonical (no native field) |
 | Bluesky | Auto | atproto SDK, canonical link appended to post text |
-| Reddit | Auto-gated | Per-subreddit cooldown, 5/day global cap, self-promo ratio, flair resolution |
-| Medium | Manual (browser) | Playwright pre-fill + batched-tab UX, mark-live CLI |
-| LinkedIn | Manual (browser) | Personal feed + company-admin compose, plain-text draft, mark-live CLI |
+| Reddit | Manual (browser) | Plain-text draft + pre-filled submit URL, mark-live CLI. No credentials needed. |
+| Medium | Manual (browser) | Plain-text draft + compose URL, mark-live CLI |
+| LinkedIn | Auto | OAuth 2.0 Posts API. Run `content-distribution-mcp linkedin install` once. |
 | Twitter / X | Manual (browser) | Free-tier API unusable; plain-text draft + compose URL, mark-live CLI |
 
 ## Part of the AutomateLab stack
