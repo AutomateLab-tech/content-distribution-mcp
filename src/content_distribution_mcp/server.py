@@ -88,12 +88,14 @@ def _build_adapter_map() -> dict[str, Any]:
     """Instantiate all channel adapters keyed by their platform prefix."""
     from .adapters.devto import DevToAdapter  # type: ignore[import]
     from .adapters.hashnode import HashnodeAdapter  # type: ignore[import]
+    from .adapters.hashnode_browser import HashnodeBrowserAdapter  # type: ignore[import]
     from .adapters.github_discussions import GitHubDiscussionsAdapter  # type: ignore[import]
     from .adapters.reddit import RedditAdapter  # type: ignore[import]
     from .adapters.medium_browser import MediumBrowserAdapter  # type: ignore[import]
     from .adapters.bluesky import BlueskyAdapter  # type: ignore[import]
     from .adapters.linkedin_browser import LinkedInBrowserAdapter  # type: ignore[import]
     from .adapters.twitter_browser import TwitterBrowserAdapter  # type: ignore[import]
+    from .adapters.coderlegion_browser import CoderLegionBrowserAdapter  # type: ignore[import]
 
     # Legacy LinkedIn API adapter import is conditional — may not exist.
     try:
@@ -105,6 +107,8 @@ def _build_adapter_map() -> dict[str, Any]:
     adapters: dict[str, Any] = {
         "devto": DevToAdapter(),
         "hashnode": HashnodeAdapter(),
+        "hashnode_browser": HashnodeBrowserAdapter(),
+        "hashnode-browser": HashnodeBrowserAdapter(),
         "github_discussions": GitHubDiscussionsAdapter(),
         "github-discussions": GitHubDiscussionsAdapter(),
         "reddit": RedditAdapter(),
@@ -115,6 +119,8 @@ def _build_adapter_map() -> dict[str, Any]:
         "linkedin-browser": LinkedInBrowserAdapter(),
         "twitter_browser": TwitterBrowserAdapter(),
         "twitter-browser": TwitterBrowserAdapter(),
+        "coderlegion_browser": CoderLegionBrowserAdapter(),
+        "coderlegion-browser": CoderLegionBrowserAdapter(),
     }
     if linkedin is not None:
         adapters["linkedin"] = linkedin
