@@ -10,7 +10,6 @@ Creating and publishing content at scale is friction-heavy:
 - **Different formats**: Reddit strips formatting, Twitter has character limits, DEV.to supports embeds and rich media. Each needs customized copy.
 - **Platform rules**: Subreddits enforce cooldowns and flair requirements. Communities have posting patterns and automoderator gates. LinkedIn suppresses external links.
 - **State chaos**: Which posts went live where? What if a publish fails halfway? Did that Reddit post get auto-removed by spam filters?
-- **Auth friction**: OAuth flows, API credentials, browser automation for platforms without APIs—managing it all is exhausting.
 
 This MCP handles distribution complexity. Write your core message once, generate platform-specific variants, publish everywhere safely.
 
