@@ -175,15 +175,7 @@ class RedditAdapter:
         # --- 3. Pre-filled compose URL ------------------------------------
         compose_url = _build_compose_url(subreddit, variant.title or "", variant.body)
 
-        # --- 4. Optional Playwright pre-fill (open URL in browser) -------
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras") or {}
-            prefill = bool(extras.get("playwright_prefill"))
-        if prefill:
-            webbrowser.open_new_tab(compose_url)
-
-        # --- 5. Persist needs_browser state ------------------------------
+        # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
             content_id,
             variant.channel,

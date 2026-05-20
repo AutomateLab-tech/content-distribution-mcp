@@ -4,9 +4,8 @@ LinkedIn browser-fallback adapter for the Content Distribution MCP.
 LinkedIn's posting APIs require company-application approval and don't cover
 the everyday personal-feed / company-page admin posting flow we actually use,
 so this adapter mirrors the Medium browser-fallback pattern: write a local
-plain-text draft, return a compose URL, and (optionally) pre-fill the editor
-via Playwright. The operator submits manually and calls :func:`mark_live`
-once the post is live.
+plain-text draft and return a compose URL. The operator pastes the draft into
+the editor and calls :func:`mark_live` once the post is live.
 
 Channel format: ``linkedin-browser:<target>`` where ``<target>`` is either:
 
@@ -118,27 +117,8 @@ class LinkedInBrowserAdapter:
         draft_path = draft_dir / f"{channel_slug}.txt"
         draft_path.write_text(_build_draft_text(variant), encoding="utf-8")
 
-        # --- 3. Compose URL + optional Playwright pre-fill ---------------
+        # --- 3. Compose URL -----------------------------------------------
         compose_url = _build_compose_url(target)
-
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras")
-            if isinstance(extras, dict):
-                prefill = bool(extras.get("playwright_prefill"))
-
-        if prefill:
-            assert isinstance(profile, dict)
-            extras = profile.get("extras", {}) or {}
-            profile_dir = extras.get(
-                "playwright_profile_dir",
-                str(Path.home() / ".distribution-mcp" / "playwright-profile"),
-            )
-            await _playwright_prefill(
-                compose_url=compose_url,
-                body=_build_draft_text(variant),
-                profile_dir=profile_dir,
-            )
 
         # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
@@ -252,53 +232,3 @@ def _safe_filename(value: str) -> str:
     """Sanitise *value* into a filesystem-safe filename."""
     return re.sub(r"[^\w\-]", "-", value).strip("-")
 
-
-# ---------------------------------------------------------------------------
-# Optional Playwright pre-fill
-# ---------------------------------------------------------------------------
-
-
-async def _playwright_prefill(
-    compose_url: str,
-    body: str,
-    profile_dir: str,
-) -> None:
-    """Best-effort pre-fill of the LinkedIn share editor via headed Chromium.
-
-    Silently returns if Playwright is not installed or any step fails;
-    pre-fill must never block the draft + compose-URL flow. The operator
-    must still review and click Post manually.
-    """
-    try:
-        from playwright.async_api import async_playwright  # optional dep
-    except ImportError:
-        return
-
-    try:
-        async with async_playwright() as pw:
-            context = await pw.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=False,
-                channel="chrome",
-            )
-            page = await context.new_page()
-            await page.goto(compose_url, wait_until="networkidle", timeout=30_000)
-
-            # LinkedIn's share dialog opens via the "Start a post" button on
-            # personal feed; on company admin pages the share box is inline.
-            try:
-                start_btn = "button:has-text('Start a post'), button:has-text('Create a post')"
-                await page.click(start_btn, timeout=5_000)
-            except Exception:  # noqa: BLE001
-                pass
-
-            try:
-                editor_selector = "div[role='textbox'], div.ql-editor"
-                await page.click(editor_selector, timeout=5_000)
-                await page.keyboard.insert_text(body)
-            except Exception:  # noqa: BLE001
-                pass
-
-            await page.wait_for_timeout(500)
-    except Exception:  # noqa: BLE001
-        return
