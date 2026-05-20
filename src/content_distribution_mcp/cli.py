@@ -40,6 +40,7 @@ import os
 import sys
 import webbrowser
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -511,6 +512,93 @@ def status(content_id: str | None) -> None:
         )
 
     console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# linkedin group
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def linkedin() -> None:
+    """LinkedIn channel commands."""
+
+
+@linkedin.command("install")
+@click.option(
+    "--client-id",
+    prompt="LinkedIn Client ID",
+    help="OAuth app client ID from https://developer.linkedin.com/",
+)
+@click.option(
+    "--client-secret",
+    prompt="LinkedIn Client Secret",
+    hide_input=True,
+    help="OAuth app client secret.",
+)
+@click.option(
+    "--profile",
+    "profile_name",
+    default="default",
+    show_default=True,
+    help="Distribution profile name to store tokens in.",
+)
+@click.option(
+    "--port",
+    default=0,
+    show_default=True,
+    type=int,
+    help="Local port for the OAuth redirect listener (0 = OS-assigned).",
+)
+def linkedin_install(
+    client_id: str,
+    client_secret: str,
+    profile_name: str,
+    port: int,
+) -> None:
+    """Run the LinkedIn OAuth install flow.
+
+    Opens a browser for LinkedIn authorisation and stores the resulting
+    access/refresh tokens in the named distribution profile. Run once per
+    LinkedIn account.
+
+    \b
+    Prerequisites:
+      1. Create a LinkedIn developer app at https://developer.linkedin.com/
+      2. Add redirect URI: http://127.0.0.1:<port>/callback
+         (use --port for a fixed port if your app requires a static URI)
+      3. Enable: Sign In with LinkedIn + Share on LinkedIn products.
+    """
+    try:
+        from .adapters.linkedin_oauth import run_install_flow  # type: ignore[import]  # noqa: PLC0415
+    except ImportError:
+        click.echo("error: linkedin_oauth module not available.", err=True)
+        sys.exit(1)
+
+    try:
+        tokens = run_install_flow(
+            client_id=client_id,
+            client_secret=client_secret,
+            redirect_port=port,
+        )
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"error: LinkedIn install failed — {exc}", err=True)
+        sys.exit(1)
+
+    state_backend = _build_backend()
+
+    # Merge into existing profile (preserves credentials for other channels).
+    existing: dict[str, Any] = state_backend.load_profile(profile_name) or {}  # type: ignore[union-attr]
+    merged = {**existing, **tokens}
+    state_backend.save_profile(profile_name, merged)  # type: ignore[union-attr]
+
+    click.echo(f"✓ LinkedIn tokens saved to profile '{profile_name}'.")
+    click.echo(f"  person_id : {tokens.get('LINKEDIN_PERSON_ID')}")
+    click.echo(f"  expires   : {tokens.get('LINKEDIN_TOKEN_EXPIRY')}")
+    click.echo(
+        "\nTo publish:\n"
+        f"  content-distribution-mcp publish --channel linkedin:personal "
+        f"--profile {profile_name}"
+    )
 
 
 # ---------------------------------------------------------------------------
