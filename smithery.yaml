@@ -1,0 +1,17 @@
+startCommand:
+  type: stdio
+  command: npx
+  args: ["-y", "@automatelab/content-distribution-mcp"]
+  env:
+    DISTRIBUTION_BACKEND_DIR: "${config.backendDir}"
+
+configSchema:
+  type: object
+  properties:
+    backendDir:
+      type: string
+      title: State directory
+      description: >
+        Directory where profile YAML files and publish state are stored.
+        Defaults to ~/.distribution-mcp when omitted.
+  required: []
