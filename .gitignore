@@ -1,32 +1,6 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg
-*.egg-info/
-.eggs/
-build/
+node_modules/
 dist/
-wheels/
-*.whl
-
-# Virtual envs
-.venv/
-venv/
-env/
-ENV/
-
-# Tooling caches
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.tox/
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
-*.cover
+*.tsbuildinfo
 
 # IDE
 .vscode/
@@ -44,10 +18,6 @@ Thumbs.db
 .env.*.local
 *.pem
 *.key
-
-# Local state / drafts written by the MCP at runtime
-.distribution-mcp/
-playwright-profile/
 
 # Notes
 tmp/

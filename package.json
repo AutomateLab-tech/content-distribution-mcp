@@ -1,0 +1,54 @@
+{
+  "name": "@ratamaha/content-distribution-mcp",
+  "version": "2.0.0",
+  "description": "Multi-channel content distribution MCP server. Publish one piece of content to DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, and Twitter with idempotent state.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "content-distribution-mcp": "dist/index.js",
+    "cdmcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "content-distribution",
+    "devto",
+    "hashnode",
+    "reddit",
+    "bluesky",
+    "linkedin",
+    "twitter",
+    "medium",
+    "github-discussions",
+    "automation",
+    "model-context-protocol"
+  ],
+  "author": "automatelab",
+  "license": "MIT",
+  "homepage": "https://automatelab.tech/products/mcp/content-distribution-mcp/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AutomateLab-tech/content-distribution-mcp"
+  }
+}

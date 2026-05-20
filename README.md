@@ -1,154 +1,189 @@
-# Content Distribution MCP
+# content-distribution-mcp
 
-A model-agnostic [Model Context Protocol](https://modelcontextprotocol.io/) server that takes a finished piece of content and routes it to developer-community platforms - DEV.to, Hashnode, GitHub Discussions, Bluesky, Reddit, LinkedIn, Medium, and Twitter - with idempotent state management and dual [[notion]]/YAML backends.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that publishes one piece of content to DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, and Twitter — with idempotent state management, per-subreddit anti-spam rules, and a YAML-backed post log.
 
-The server makes no LLM calls of any kind. All copy transformation is the caller's responsibility. The MCP hands back per-channel constraints via the `hints()` tool; the agent decides what to do with them.
-
-## Works with any MCP client
-
-This is not a Claude-only tool, and not a single-host tool. The server speaks standard MCP (stdio or SSE transport) and works unchanged with:
-
-- **Claude Code** - via the `content-distribution` skill that ships with this repo, or any Claude Code custom skill
-- **[[n8n]]** - via the MCP node, dropping `publish()` and `schedule()` calls into any workflow
-- **Cursor** - via the MCP client built into Cursor agents
-- **plain Python** - via the `mcp` client library, with any LLM SDK (OpenAI, [[anthropic]], Gemini, local Ollama, none at all)
-- **custom integrations** - anything that speaks MCP over stdio or SSE
-
-The MCP server has zero Anthropic-specific code. There is no `anthropic` import anywhere in `src/`. Verify with:
-
-```bash
-grep -ri "anthropic" src/  # returns nothing
-```
-
-The host process supplies credentials (constructor args, env vars, or via the StateBackend's Profile lookup). The host process supplies LLM-generated `Variant` text. The MCP supplies idempotent I/O.
+The server makes **no LLM calls**. All copy transformation is the caller's responsibility. The MCP hands back per-channel constraints via the `hints` tool; the agent decides what to do with them.
 
 ## Install
 
 ```bash
-pip install content-distribution-mcp
+npx @ratamaha/content-distribution-mcp
 ```
 
-Bluesky extras:
+Or add it permanently to your MCP host.
 
-```bash
-pip install content-distribution-mcp[bluesky]
-```
+## Wire into your MCP host
 
-## Quickstart
+**Claude Code** — add to `.claude/mcp.json`:
 
-```bash
-# Start the server (stdio transport, the default)
-content-distribution-mcp serve
-
-# Provision Notion state databases (one-time)
-content-distribution-mcp provision-notion
-
-# Fire any due scheduled posts (one-shot, cron-friendly)
-content-distribution-mcp drain
-```
-
-Wire into your MCP host of choice. For Claude Code:
-
-```jsonc
-// .claude/mcp.json
+```json
 {
   "mcpServers": {
     "content-distribution": {
-      "command": "content-distribution-mcp",
-      "args": ["serve"]
+      "command": "npx",
+      "args": ["-y", "@ratamaha/content-distribution-mcp"]
     }
   }
 }
 ```
 
-For n8n: install the MCP Client node, point it at `content-distribution-mcp serve` over stdio, and call `publish` / `schedule` from any workflow.
+**Claude Desktop** — add to `claude_desktop_config.json`:
 
-For plain Python:
-
-```python
-from mcp import Client
-client = Client("content-distribution-mcp", ["serve"])
-await client.call("publish", {
-    "content": {...},
-    "variants": [{...}],
-    "profile_name": "default",
-})
+```json
+{
+  "mcpServers": {
+    "content-distribution": {
+      "command": "npx",
+      "args": ["-y", "@ratamaha/content-distribution-mcp"]
+    }
+  }
+}
 ```
+
+**n8n** — use the MCP Client node, point it at `npx @ratamaha/content-distribution-mcp` over stdio.
+
+**Cursor / Windsurf / any MCP host** — same `npx -y content-distribution-mcp` pattern.
+
+## Configure credentials
+
+The server reads credentials from a **Distribution Profile** stored in `~/.distribution-mcp/profiles.yaml`:
+
+```yaml
+# ~/.distribution-mcp/profiles.yaml
+default:
+  credentials:
+    DEV_TO_API_KEY: "your-devto-api-key"
+    HASHNODE_TOKEN: "your-hashnode-token"
+    HASHNODE_PUBLICATION_ID: "your-pub-id"
+    GITHUB_TOKEN: "ghp_..."
+    GITHUB_DISCUSSION_REPO: "owner/repo"
+    REDDIT_CLIENT_ID: "..."
+    REDDIT_CLIENT_SECRET: "..."
+    REDDIT_USERNAME: "..."
+    REDDIT_PASSWORD: "..."
+    BLUESKY_IDENTIFIER: "you.bsky.social"
+    BLUESKY_PASSWORD: "..."
+  subreddits:
+    - ClaudeAI
+    - LocalLLaMA
+```
+
+Only set credentials for channels you intend to use. LinkedIn, Medium, and Twitter/X return `needs_browser` with a compose URL — no credentials needed.
 
 ## MCP tool surface
 
-Eight tools. Full docstrings in [spec.md](spec.md#12-mcp-tool-surface).
+Eight tools. No LLM calls inside the server.
 
 | Tool | Purpose |
 |---|---|
-| `publish` | Immediate publish; idempotent on `(content.id, variant.channel)` |
-| `schedule` | Queue variants for `schedule_at` |
-| `drain` | Fire any due scheduled posts |
-| `status` | Per-variant state for a content piece |
-| `unpublish` | Best-effort delete (DEV.to / GitHub Discussions only - Reddit is honor-system) |
-| `hints` | Static per-channel metadata: char limits, tag vocabulary, canonical-URL support, posting times |
-| `list_profiles` | Configured Distribution Profiles |
-| `list_subreddits` | Curated Subreddit Catalog entries |
+| `publish` | Immediate publish; idempotent on `(content.id, channel)` |
+| `schedule` | Queue variants for `schedule_at`, publish the rest immediately |
+| `drain` | Fire all scheduled posts due now — run from cron |
+| `status` | Per-channel state for a content piece or channel |
+| `unpublish` | Best-effort delete (DEV.to sets unpublished; others vary) |
+| `hints` | Per-channel metadata: char limits, Markdown support, tag vocab |
+| `list_profiles` | Names of configured distribution profiles |
+| `list_subreddits` | Subreddit Catalog: cooldowns, flair vocab, last-posted |
+
+## Channels
+
+| Channel key | Tier | Auth |
+|---|---|---|
+| `devto` | Auto | `DEV_TO_API_KEY` |
+| `hashnode` | Auto | `HASHNODE_TOKEN` + `HASHNODE_PUBLICATION_ID` |
+| `github_discussions` | Auto | `GITHUB_TOKEN` + `GITHUB_DISCUSSION_REPO` |
+| `reddit` | Auto-gated | `REDDIT_CLIENT_ID/SECRET/USERNAME/PASSWORD` |
+| `bluesky` | Auto | `BLUESKY_IDENTIFIER` + `BLUESKY_PASSWORD` |
+| `linkedin` | Browser fallback | returns `needs_browser` + compose URL |
+| `medium` | Browser fallback | returns `needs_browser` + compose URL |
+| `twitter` / `x` | Browser fallback | returns `needs_browser` + compose URL |
+
+## Example agent call
+
+```jsonc
+// publish tool
+{
+  "content": {
+    "id": "n8n-webhook-setup@2026-05-20",
+    "title": "How to set up an n8n webhook",
+    "body_md": "...",
+    "tags": ["automation", "n8n", "tutorial"],
+    "canonical_url": "https://yourblog.com/n8n-webhook-setup",
+    "author": "You"
+  },
+  "variants": [
+    {
+      "channel": "devto:main",
+      "title": "How to set up an n8n webhook",
+      "body": "...",
+      "tags": ["automation", "n8n", "tutorial", "devops"],
+      "canonical_url": "https://yourblog.com/n8n-webhook-setup",
+      "extras": {}
+    },
+    {
+      "channel": "reddit:ClaudeAI",
+      "title": "Built a webhook automation with n8n",
+      "body": "Here's how I set it up...",
+      "tags": [],
+      "extras": { "flair": "Project" }
+    }
+  ],
+  "profile_name": "default"
+}
+```
+
+## Idempotency
+
+Re-running `publish` with the same `content.id` + `channel` pair returns the existing `live_url` immediately without making another platform API call. Safe to retry on failure.
+
+## Scheduling
+
+Variants with `schedule_at` (ISO-8601 with timezone, e.g. `"2026-05-21T09:00:00+00:00"`) are stored in `~/.distribution-mcp/scheduled.yaml` and fired on the next `drain` call. Run `drain` from cron:
+
+```bash
+# fire due posts every 5 minutes
+*/5 * * * * npx -y content-distribution-mcp drain
+```
+
+Or call the `drain` MCP tool directly from an agent.
+
+## Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DISTRIBUTION_BACKEND` | `yaml` | State backend (`yaml` only in v1) |
+| `DISTRIBUTION_BACKEND_DIR` | `~/.distribution-mcp` | Directory for YAML state files |
+
+## Requirements
+
+- Node.js 18 or later
 
 ## Architecture
 
 ```
-+------------------------------------------------------+
-| Agent Layer                                          |
-|   (Claude Code, n8n, Cursor, plain Python, any host) |
-|   Reads source content                               |
-|   Generates per-channel copy (LLM work lives here)   |
-|   Calls MCP tools                                    |
-+------------------------------------------------------+
-                          |
-                          v  (MCP protocol - stdio or SSE)
-+------------------------------------------------------+
-| Content Distribution MCP Server                      |
-|   No LLM calls. Pure I/O.                            |
-|   Adapters, state, idempotency, scheduling, retries  |
-+------------------------------------------------------+
-            |                        |
-            v                        v
-+---------------------+    +---------------------+
-| Channel Adapters    |    | StateBackend        |
-| devto / hashnode    |    | NotionBackend       |
-| github_disc / reddit|    | YamlBackend         |
-| linkedin / medium   |    +---------------------+
-+---------------------+
+Agent (Claude Code / n8n / Cursor / any MCP host)
+  │  generates per-channel copy, calls MCP tools
+  ▼
+content-distribution-mcp  (this package, stdio transport)
+  │  no LLM calls — pure I/O
+  ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · browser
+  └── backends/   yaml (post log · profiles · schedule queue · subreddit catalog)
 ```
 
-See [spec.md](spec.md) for the full data model, idempotency design, scheduling semantics, and integration notes.
+## Works with any MCP client
 
-## Backends
+No Anthropic-specific code anywhere. Verify:
 
-- **`YamlBackend`** - four YAML files in `~/.distribution-mcp/`. Zero-config; right for solo/local use.
-- **`NotionBackend`** - three Notion databases (Distribution Profiles, Subreddit Catalog, Post Log) plus URL write-back to source tasks. Right for team/agency use.
-
-Both implement the same `StateBackend` Protocol. The MCP picks the backend from a constructor argument; no caller code changes when you swap them.
-
-## Channels
-
-| Channel | Tier | Notes |
-|---|---|---|
-| DEV.to | Auto | Forem API v1, native `canonical_url` |
-| Hashnode | Auto | GraphQL, native `originalArticleURL` |
-| GitHub Discussions | Auto | GraphQL per-repo, footer for canonical (no native field) |
-| Bluesky | Auto | atproto SDK, canonical link appended to post text |
-| Reddit | Manual (browser) | Plain-text draft + pre-filled submit URL, mark-live CLI. No credentials needed. |
-| Medium | Manual (browser) | Plain-text draft + compose URL, mark-live CLI |
-| LinkedIn | Auto | OAuth 2.0 Posts API. Run `content-distribution-mcp linkedin install` once. |
-| Twitter / X | Manual (browser) | Free-tier API unusable; plain-text draft + compose URL, mark-live CLI |
+```bash
+grep -ri "anthropic" node_modules/content-distribution-mcp/dist/  # returns nothing
+```
 
 ## Part of the AutomateLab stack
 
-- [agency-os](https://github.com/automatelab-tech/agency-os) - Control plane and Notion integration
-- publishing-skills - Upstream content production (e.g. `al-write-blog-post`)
-- **content-distribution-mcp** - This repo
-- [ai-seo-mcp](https://github.com/automatelab-tech/ai-seo-mcp) - Post-publish AI-citation audit
-- [automatelab.tech](https://automatelab.tech) - Blog and tutorials
-
-These integrate by convention, not by import. Each is usable standalone with any MCP host.
+- [agency-os](https://github.com/AutomateLab-tech/agency-os) — control plane
+- **content-distribution-mcp** — this package
+- [automatelab.tech](https://automatelab.tech) — blog and tutorials
 
 ## License
 
-MIT.
+MIT
