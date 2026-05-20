@@ -4,9 +4,8 @@ CoderLegion browser adapter for the Content Distribution MCP.
 CoderLegion (https://coderlegion.com/) is a developer community platform
 supporting articles, discussions, and launches.  It does not expose a public
 write API, so this adapter follows the same browser-fallback pattern as the
-Medium, LinkedIn, and Twitter adapters: write a draft, return the compose URL,
-and optionally pre-fill via Playwright.  The operator submits manually and
-calls :func:`mark_live` once the post is live.
+Medium, LinkedIn, and Twitter adapters: write a draft and return the compose URL.
+The operator pastes the draft and calls :func:`mark_live` once the post is live.
 
 Channel format: ``coderlegion-browser:main``
 
@@ -115,25 +114,7 @@ class CoderLegionBrowserAdapter:
         draft_path = draft_dir / f"{channel_slug}.md"
         draft_path.write_text(_build_draft_text(variant), encoding="utf-8")
 
-        # --- 3. Compose URL + optional Playwright pre-fill ---------------
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras")
-            if isinstance(extras, dict):
-                prefill = bool(extras.get("playwright_prefill"))
-
-        if prefill:
-            assert isinstance(profile, dict)
-            extras = profile.get("extras", {}) or {}
-            profile_dir = extras.get(
-                "playwright_profile_dir",
-                str(Path.home() / ".distribution-mcp" / "playwright-profile"),
-            )
-            await _playwright_prefill(
-                compose_url=_COMPOSE_URL,
-                body=_build_draft_text(variant),
-                profile_dir=profile_dir,
-            )
+        # --- 3. Compose URL: _COMPOSE_URL (constant) ----------------------
 
         # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
@@ -237,40 +218,3 @@ def _safe_filename(value: str) -> str:
     """Sanitise *value* into a filesystem-safe filename."""
     return re.sub(r"[^\w\-]", "-", value).strip("-")
 
-
-# ---------------------------------------------------------------------------
-# Optional Playwright pre-fill
-# ---------------------------------------------------------------------------
-
-
-async def _playwright_prefill(
-    compose_url: str,
-    body: str,
-    profile_dir: str,
-) -> None:
-    """Best-effort pre-fill of the CoderLegion editor via headed Chromium."""
-    try:
-        from playwright.async_api import async_playwright
-    except ImportError:
-        return
-
-    try:
-        async with async_playwright() as pw:
-            context = await pw.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=False,
-                channel="chrome",
-            )
-            page = await context.new_page()
-            await page.goto(compose_url, wait_until="networkidle", timeout=30_000)
-
-            try:
-                editor_selector = "div[contenteditable='true'], textarea.editor, div.ProseMirror"
-                await page.click(editor_selector, timeout=8_000)
-                await page.keyboard.insert_text(body)
-            except Exception:  # noqa: BLE001
-                pass
-
-            await page.wait_for_timeout(500)
-    except Exception:  # noqa: BLE001
-        return

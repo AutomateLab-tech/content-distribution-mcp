@@ -367,20 +367,12 @@ def mark_live(content_id: str, channel: str, live_url: str) -> None:
 
 @cli.command("open-pending")
 @click.argument("content_id")
-@click.option(
-    "--no-prefill",
-    is_flag=True,
-    default=False,
-    help="Open tabs without Playwright pre-fill (manual paste).",
-)
-def open_pending(content_id: str, no_prefill: bool) -> None:
-    """Open browser tabs for all pending Medium variants.
+def open_pending(content_id: str) -> None:
+    """Open browser tabs for all pending needs_browser variants.
 
     Looks up ``needs_browser`` entries in the Post Log for *content_id* and
-    opens the corresponding Medium compose URLs in new browser tabs.
-
-    If the ``medium-browser`` adapter is available and Playwright is installed,
-    the tabs will be pre-filled (unless --no-prefill is passed).
+    opens the corresponding compose URLs in new browser tabs. Paste the draft
+    from ``~/.distribution-mcp/drafts/<content_id>/`` into the editor manually.
     """
     state_backend = _build_backend()
 
@@ -405,16 +397,6 @@ def open_pending(content_id: str, no_prefill: bool) -> None:
         click.echo(f"No pending browser variants found for content_id={content_id!r}.")
         return
 
-    if MediumBrowserAdapter is not None and not no_prefill:
-        try:
-            from .adapters.medium_browser import open_pending_in_tabs  # type: ignore[import]  # noqa: PLC0415
-
-            asyncio.run(open_pending_in_tabs(content_id, state_backend))
-            return
-        except (ImportError, AttributeError):
-            pass  # Fall through to simple webbrowser.open below.
-
-    # Fallback: open compose URLs via the stdlib webbrowser module.
     opened = 0
     for entry in entries:
         compose_url = (

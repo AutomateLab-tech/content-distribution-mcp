@@ -2,9 +2,8 @@
 Medium browser-fallback adapter for the Content Distribution MCP.
 
 Medium has no public Partner Program API in 2026, so this adapter writes a
-local Markdown draft, returns a compose URL, and (optionally) pre-fills the
-editor via Playwright. The operator then submits manually and calls
-:func:`mark_live` once the post is live.
+local Markdown draft and returns a compose URL. The operator pastes the draft
+into the editor and calls :func:`mark_live` once the post is live.
 
 Channel format: ``medium-browser:<publication>`` where ``<publication>`` is
 either ``personal`` for the personal feed or a Medium publication slug.
@@ -114,28 +113,8 @@ class MediumBrowserAdapter:
         draft_path = draft_dir / f"{channel_slug}.md"
         draft_path.write_text(_build_draft_markdown(variant), encoding="utf-8")
 
-        # --- 3. Compose URL + optional Playwright pre-fill ---------------
+        # --- 3. Compose URL -----------------------------------------------
         compose_url = _build_compose_url(pub_slug)
-
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras")
-            if isinstance(extras, dict):
-                prefill = bool(extras.get("playwright_prefill"))
-
-        if prefill:
-            assert isinstance(profile, dict)
-            extras = profile.get("extras", {}) or {}
-            profile_dir = extras.get(
-                "playwright_profile_dir",
-                str(Path.home() / ".distribution-mcp" / "playwright-profile"),
-            )
-            await _playwright_prefill(
-                compose_url=compose_url,
-                title=variant.title,
-                body=variant.body,
-                profile_dir=profile_dir,
-            )
 
         # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
@@ -264,52 +243,3 @@ def _safe_filename(value: str) -> str:
     """Sanitise *value* into a filesystem-safe filename."""
     return re.sub(r"[^\w\-]", "-", value).strip("-")
 
-
-# ---------------------------------------------------------------------------
-# Optional Playwright pre-fill
-# ---------------------------------------------------------------------------
-
-
-async def _playwright_prefill(
-    compose_url: str,
-    title: str,
-    body: str,
-    profile_dir: str,
-) -> None:
-    """Best-effort pre-fill of the Medium compose editor via headed Chromium.
-
-    Silently returns if Playwright is not installed or any step fails;
-    pre-fill must never block the draft + compose-URL flow.
-    """
-    try:
-        from playwright.async_api import async_playwright  # optional dep
-    except ImportError:
-        return
-
-    try:
-        async with async_playwright() as pw:
-            context = await pw.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=False,
-                channel="chrome",
-            )
-            page = await context.new_page()
-            await page.goto(compose_url, wait_until="networkidle", timeout=30_000)
-
-            try:
-                title_selector = "h3[data-testid='post-title'], [placeholder='Title']"
-                await page.click(title_selector, timeout=5_000)
-                await page.keyboard.insert_text(title)
-            except Exception:  # noqa: BLE001
-                pass
-
-            try:
-                body_selector = "div.section-content, div[data-testid='post-body']"
-                await page.click(body_selector, timeout=5_000)
-                await page.keyboard.insert_text(body)
-            except Exception:  # noqa: BLE001
-                pass
-
-            await page.wait_for_timeout(500)
-    except Exception:  # noqa: BLE001
-        return

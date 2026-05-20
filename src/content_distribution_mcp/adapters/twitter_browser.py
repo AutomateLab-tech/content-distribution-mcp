@@ -4,9 +4,8 @@ Twitter / X browser-fallback adapter for the Content Distribution MCP.
 X's v2 API now requires a paid Basic tier ($200/month) for posting tweets, and
 even the free tier rate-limits writes to a degree that makes it unusable for
 small-batch distribution. So this adapter mirrors the Medium / LinkedIn
-browser-fallback pattern: write a plain-text draft, return the compose URL,
-and (optionally) pre-fill the editor via Playwright. The operator submits
-manually and calls :func:`mark_live` once the tweet is live.
+browser-fallback pattern: write a plain-text draft and return the compose URL.
+The operator pastes the draft and calls :func:`mark_live` once the tweet is live.
 
 Channel format: ``twitter-browser:<handle>`` where ``<handle>`` is either:
 
@@ -107,27 +106,8 @@ class TwitterBrowserAdapter:
         draft_path = draft_dir / f"{channel_slug}.txt"
         draft_path.write_text(_build_draft_text(variant), encoding="utf-8")
 
-        # --- 3. Compose URL + optional Playwright pre-fill ---------------
+        # --- 3. Compose URL -----------------------------------------------
         compose_url = _COMPOSE_URL
-
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras")
-            if isinstance(extras, dict):
-                prefill = bool(extras.get("playwright_prefill"))
-
-        if prefill:
-            assert isinstance(profile, dict)
-            extras = profile.get("extras", {}) or {}
-            profile_dir = extras.get(
-                "playwright_profile_dir",
-                str(Path.home() / ".distribution-mcp" / "playwright-profile"),
-            )
-            await _playwright_prefill(
-                compose_url=compose_url,
-                body=_build_draft_text(variant),
-                profile_dir=profile_dir,
-            )
 
         # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
@@ -212,40 +192,3 @@ def _build_draft_text(variant: Variant) -> str:
 def _safe_filename(value: str) -> str:
     return re.sub(r"[^\w\-]", "-", value).strip("-")
 
-
-# ---------------------------------------------------------------------------
-# Optional Playwright pre-fill
-# ---------------------------------------------------------------------------
-
-
-async def _playwright_prefill(
-    compose_url: str,
-    body: str,
-    profile_dir: str,
-) -> None:
-    """Best-effort pre-fill of the X compose editor via headed Chromium."""
-    try:
-        from playwright.async_api import async_playwright  # optional dep
-    except ImportError:
-        return
-
-    try:
-        async with async_playwright() as pw:
-            context = await pw.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=False,
-                channel="chrome",
-            )
-            page = await context.new_page()
-            await page.goto(compose_url, wait_until="networkidle", timeout=30_000)
-
-            try:
-                editor_selector = "div[data-testid='tweetTextarea_0'], div[role='textbox']"
-                await page.click(editor_selector, timeout=5_000)
-                await page.keyboard.insert_text(body)
-            except Exception:  # noqa: BLE001
-                pass
-
-            await page.wait_for_timeout(500)
-    except Exception:  # noqa: BLE001
-        return

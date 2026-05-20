@@ -3,10 +3,9 @@ Hashnode browser-fallback adapter for the Content Distribution MCP.
 
 Hashnode's public GraphQL API moved to a paid tier on 2026-05-13.  This
 adapter provides the internal-use replacement: write a markdown draft with
-a header comment block containing the title and canonical URL, return the
-Hashnode compose URL, and (optionally) pre-fill the editor via Playwright.
-The operator sets title / canonical URL / tags in the Hashnode editor and
-clicks Publish. They then call :func:`mark_live` to record the live URL.
+a header comment block containing the title and canonical URL, and return the
+Hashnode compose URL. The operator pastes the draft, sets title / canonical URL
+/ tags in the Hashnode editor, and calls :func:`mark_live` to record the live URL.
 
 The public HashnodeAdapter (``hashnode.py``) stays in the package for users
 who subscribe to the paid API tier.  This adapter is the *browser fallback*
@@ -128,25 +127,7 @@ class HashnodeBrowserAdapter:
         draft_path = draft_dir / f"{channel_slug}.md"
         draft_path.write_text(_build_draft_text(variant), encoding="utf-8")
 
-        # --- 3. Compose URL + optional Playwright pre-fill ---------------
-        prefill = False
-        if isinstance(profile, dict):
-            extras = profile.get("extras")
-            if isinstance(extras, dict):
-                prefill = bool(extras.get("playwright_prefill"))
-
-        if prefill:
-            assert isinstance(profile, dict)
-            extras = profile.get("extras", {}) or {}
-            profile_dir = extras.get(
-                "playwright_profile_dir",
-                str(Path.home() / ".distribution-mcp" / "playwright-profile"),
-            )
-            await _playwright_prefill(
-                compose_url=_HASHNODE_COMPOSE_URL,
-                body=variant.body.strip(),
-                profile_dir=profile_dir,
-            )
+        # --- 3. Compose URL: _HASHNODE_COMPOSE_URL (constant) ---------------
 
         # --- 4. Persist needs_browser state ------------------------------
         state_backend.mark_published(
@@ -253,46 +234,3 @@ def _safe_filename(value: str) -> str:
     """Sanitise *value* into a filesystem-safe filename."""
     return re.sub(r"[^\w\-]", "-", value).strip("-")
 
-
-# ---------------------------------------------------------------------------
-# Optional Playwright pre-fill
-# ---------------------------------------------------------------------------
-
-
-async def _playwright_prefill(
-    compose_url: str,
-    body: str,
-    profile_dir: str,
-) -> None:
-    """Best-effort pre-fill of the Hashnode editor via headed Chromium.
-
-    Silently returns if Playwright is not installed or any step fails.
-    The operator must still set the title and canonical URL in the Settings
-    panel and click Publish manually.
-    """
-    try:
-        from playwright.async_api import async_playwright
-    except ImportError:
-        return
-
-    try:
-        async with async_playwright() as pw:
-            context = await pw.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=False,
-                channel="chrome",
-            )
-            page = await context.new_page()
-            await page.goto(compose_url, wait_until="networkidle", timeout=30_000)
-
-            # Hashnode's editor uses a ProseMirror-based contenteditable div.
-            try:
-                editor_selector = "div.ProseMirror, div[contenteditable='true']"
-                await page.click(editor_selector, timeout=8_000)
-                await page.keyboard.insert_text(body)
-            except Exception:  # noqa: BLE001
-                pass
-
-            await page.wait_for_timeout(500)
-    except Exception:  # noqa: BLE001
-        return
