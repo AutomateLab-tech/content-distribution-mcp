@@ -1,6 +1,6 @@
 {
-  "name": "@ratamaha/content-distribution-mcp",
-  "version": "2.0.0",
+  "name": "@automatelab/content-distribution-mcp",
+  "version": "2.0.1",
   "description": "Multi-channel content distribution MCP server. Publish one piece of content to DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, and Twitter with idempotent state.",
   "type": "module",
   "main": "dist/index.js",
