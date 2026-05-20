@@ -1,13 +1,31 @@
 # content-distribution-mcp
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that publishes one piece of content to DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, and Twitter — with idempotent state management, per-subreddit anti-spam rules, and a YAML-backed post log.
+**Publish your content everywhere—without rewriting for every platform.**
 
-The server makes **no LLM calls**. All copy transformation is the caller's responsibility. The MCP hands back per-channel constraints via the `hints` tool; the agent decides what to do with them.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that distributes a single piece of content across 8+ channels (DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, Twitter) with **automatic platform-specific adaptation**, idempotent publishing, per-community anti-spam rules, and centralized state management.
+
+## The Problem It Solves
+
+Creating and publishing content at scale is friction-heavy:
+- **Different formats**: Reddit strips formatting, Twitter has character limits, DEV.to supports embeds and rich media. Each needs customized copy.
+- **Platform rules**: Subreddits enforce cooldowns and flair requirements. Communities have posting patterns and automoderator gates. LinkedIn suppresses external links.
+- **State chaos**: Which posts went live where? What if a publish fails halfway? Did that Reddit post get auto-removed by spam filters?
+- **Auth friction**: OAuth flows, API credentials, browser automation for platforms without APIs—managing it all is exhausting.
+
+This MCP handles distribution complexity. Write your core message once, generate platform-specific variants, publish everywhere safely.
+
+## How It Works
+
+1. **Your agent** generates channel-specific copy variants (rewritten titles, trimmed text, platform-appropriate tags, audience-matched tone).
+2. **This MCP** publishes each variant with idempotency, OAuth, API retries, and scheduling—enforcing platform constraints automatically.
+3. **You control** which platforms get what. The MCP returns per-channel hints (character limits, tag vocabularies, cooldowns) but leaves creative decisions to you.
+
+No LLM calls inside. No walled-in agents. Just a clean API for multi-platform content distribution at scale.
 
 ## Install
 
 ```bash
-npx @ratamaha/content-distribution-mcp
+npx @automatelab/content-distribution-mcp
 ```
 
 Or add it permanently to your MCP host.
@@ -21,7 +39,7 @@ Or add it permanently to your MCP host.
   "mcpServers": {
     "content-distribution": {
       "command": "npx",
-      "args": ["-y", "@ratamaha/content-distribution-mcp"]
+      "args": ["-y", "@automatelab/content-distribution-mcp"]
     }
   }
 }
@@ -34,13 +52,13 @@ Or add it permanently to your MCP host.
   "mcpServers": {
     "content-distribution": {
       "command": "npx",
-      "args": ["-y", "@ratamaha/content-distribution-mcp"]
+      "args": ["-y", "@automatelab/content-distribution-mcp"]
     }
   }
 }
 ```
 
-**n8n** — use the MCP Client node, point it at `npx @ratamaha/content-distribution-mcp` over stdio.
+**n8n** — use the MCP Client node, point it at `npx @automatelab/content-distribution-mcp` over stdio.
 
 **Cursor / Windsurf / any MCP host** — same `npx -y content-distribution-mcp` pattern.
 
