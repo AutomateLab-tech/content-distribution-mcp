@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "content-distribution": {
+      "command": "npx",
+      "args": ["-y", "@automatelab/content-distribution-mcp"]
+    }
+  }
+}
