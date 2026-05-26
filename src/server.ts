@@ -141,8 +141,8 @@ export function createServer() {
       title: "Publish variants to one or more channels immediately",
       description: "Publish one or more channel variants immediately. Side effects: makes external HTTP requests to each channel platform; writes publish state to the local YAML backend; requires valid credentials in the named profile. Idempotent on (content.id, channel) — re-running with the same IDs returns cached state without re-posting. Use post.publish for immediate-only delivery; use post.schedule when any variant needs a future schedule_at; use post.drain to flush a previously built queue.",
       inputSchema: {
-        content: ContentSchema,
-        variants: z.array(VariantSchema),
+        content: ContentSchema.describe("Content piece to publish: stable id (idempotency key), title, body_md, tags, and optional cover_image / canonical_url / cta_block / author fields. The id + channel pair is the deduplication key — the same id will not be re-posted."),
+        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug (e.g. 'devto:main', 'reddit:ClaudeAI'), the adapted title and body, optional schedule_at for future delivery, and channel extras such as flair. Use channel.hints to check per-channel constraints before composing."),
         profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile.list to discover available names."),
       },
       outputSchema: publishOutputShape,
@@ -168,8 +168,8 @@ export function createServer() {
       title: "Schedule variants for future publishing",
       description: "Enqueue channel variants with schedule_at for future publishing; variants without schedule_at are published immediately. Side effects: writes entries to the local YAML schedule store; makes external HTTP requests for any immediately-published variants; requires credentials in the named profile. Idempotent on (content.id, channel). Use post.schedule when any variant needs a future publish time; use post.publish for all-immediate delivery; use post.drain to process the scheduled queue later.",
       inputSchema: {
-        content: ContentSchema,
-        variants: z.array(VariantSchema),
+        content: ContentSchema.describe("Content piece to publish: stable id (idempotency key), title, body_md, tags, and optional cover_image / canonical_url / cta_block / author fields. The id + channel pair is the deduplication key — the same id will not be re-posted."),
+        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug, the adapted title and body, and optionally schedule_at (ISO-8601 with timezone) for future delivery. Variants without schedule_at are published immediately; variants with schedule_at are queued for post.drain. Use channel.hints to check per-channel constraints."),
         profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile.list to discover available names."),
       },
       outputSchema: scheduleOutputShape,
