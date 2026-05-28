@@ -2,7 +2,7 @@
 
 **Publish your content everywhere—without rewriting for every platform.**
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that distributes a single piece of content across 8+ channels (DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, Twitter) with **automatic platform-specific adaptation**, idempotent publishing, per-community anti-spam rules, and centralized state management.
+A MCP server that distributes a single piece of content across 8+ channels (DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, Twitter) with **automatic platform-specific adaptation**, idempotent publishing, per-community anti-spam rules, and centralized state management.
 
 ## The Problem It Solves
 
