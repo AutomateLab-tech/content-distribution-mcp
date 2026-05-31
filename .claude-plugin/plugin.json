@@ -1,0 +1,5 @@
+{
+  "description": "Publish content to 8+ channels (DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, Twitter) with automatic platform-specific adaptation, idempotent state, and anti-spam enforcement.",
+  "name": "content-distribution-mcp",
+  "displayName": "AutomateLab Content Distribution MCP"
+}
