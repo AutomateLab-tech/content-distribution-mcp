@@ -60,14 +60,14 @@ const scheduleOutputShape = publishOutputShape;
 const drainOutputShape = publishOutputShape;
 
 const statusEntryShape = {
-  channel: z.string(),
-  state: z.enum(["live", "queued", "needs_browser", "failed"]),
-  live_url: z.string().nullable(),
-  published_at: z.string().nullable(),
-  error: z.string().nullable(),
-  content_id: z.string(),
-  retry_count: z.number().nullable(),
-  next_retry_at: z.string().nullable(),
+  channel: z.string().describe("Channel slug the entry belongs to, e.g. 'devto:main'."),
+  state: z.enum(["live", "queued", "needs_browser", "failed"]).describe("Current publish state: live=published, queued=scheduled for future drain, needs_browser=manual step required, failed=last attempt errored."),
+  live_url: z.string().nullable().describe("Public URL of the live post; null when not yet published."),
+  published_at: z.string().nullable().describe("UTC ISO-8601 timestamp of the successful publish; null when not yet live."),
+  error: z.string().nullable().describe("Last error message from the platform; null when no error."),
+  content_id: z.string().describe("Stable content identifier passed to post.publish / post.schedule; matches the content.id field."),
+  retry_count: z.number().nullable().describe("Number of publish attempts made so far; null for first attempt."),
+  next_retry_at: z.string().nullable().describe("UTC ISO-8601 of the next scheduled retry; null when not queued for retry."),
 } as const;
 
 const statusOutputShape = {
@@ -97,7 +97,7 @@ const subredditEntryShape = {
   cooldown_days: z.number().optional().describe("Minimum days between posts to this subreddit."),
   flair_vocab: z.array(z.string()).optional().describe("Allowed flair IDs / labels."),
   last_posted_at: z.string().nullable().optional().describe("UTC ISO-8601 of the last successful post; null when never posted."),
-  notes: z.string().optional(),
+  notes: z.string().optional().describe("Free-text notes about this subreddit; omitted when not set."),
 } as const;
 
 const subredditListOutputShape = {
@@ -130,7 +130,7 @@ function buildBackend(): StateBackend {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "content-distribution-mcp", version: "2.2.0" });
+  const server = new McpServer({ name: "content-distribution-mcp", version: "2.2.2" });
   const adapters = buildAdapterMap();
   const backend = buildBackend();
 
