@@ -93,16 +93,16 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 
 | Tool | Purpose |
 |---|---|
-| `post.publish` | Immediate publish; idempotent on `(content.id, channel)` |
-| `post.schedule` | Queue variants for `schedule_at`, publish the rest immediately |
-| `post.drain` | Fire all scheduled posts due now — run from cron |
-| `post.status` | Per-channel state for a content piece or channel |
-| `post.unpublish` | Best-effort delete (DEV.to sets unpublished; others vary) |
-| `channel.hints` | Per-channel metadata: char limits, Markdown support, tag vocab |
-| `profile.list` | Names of configured distribution profiles |
-| `subreddit.list` | Subreddit Catalog: cooldowns, flair vocab, last-posted |
+| `post_publish` | Immediate publish; idempotent on `(content.id, channel)` |
+| `post_schedule` | Queue variants for `schedule_at`, publish the rest immediately |
+| `post_drain` | Fire all scheduled posts due now — run from cron |
+| `post_status` | Per-channel state for a content piece or channel |
+| `post_unpublish` | Best-effort delete (DEV.to sets unpublished; others vary) |
+| `channel_hints` | Per-channel metadata: char limits, Markdown support, tag vocab |
+| `profile_list` | Names of configured distribution profiles |
+| `subreddit_list` | Subreddit Catalog: cooldowns, flair vocab, last-posted |
 
-> **v2.2.0 breaking change.** Tools were renamed from flat names (`publish`, `schedule`, ...) to dot-notation (`post.publish`, `post.schedule`, ...). Update any prompts, agent skills, or n8n nodes that referenced the old names.
+> **v2.2.0 breaking change.** Tools were renamed from flat names (`publish`, `schedule`, ...) to dot-notation (`post_publish`, `post_schedule`, ...). Update any prompts, agent skills, or n8n nodes that referenced the old names.
 
 ## Channels
 
@@ -120,7 +120,7 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 ## Example agent call
 
 ```jsonc
-// post.publish tool
+// post_publish tool
 {
   "content": {
     "id": "n8n-webhook-setup@2026-05-20",
@@ -153,18 +153,18 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 
 ## Idempotency
 
-Re-running `post.publish` with the same `content.id` + `channel` pair returns the existing `live_url` immediately without making another platform API call. Safe to retry on failure.
+Re-running `post_publish` with the same `content.id` + `channel` pair returns the existing `live_url` immediately without making another platform API call. Safe to retry on failure.
 
 ## Scheduling
 
-Variants with `schedule_at` (ISO-8601 with timezone, e.g. `"2026-05-21T09:00:00+00:00"`) are stored in `~/.distribution-mcp/scheduled.yaml` and fired on the next `post.drain` call. Run `drain` from cron:
+Variants with `schedule_at` (ISO-8601 with timezone, e.g. `"2026-05-21T09:00:00+00:00"`) are stored in `~/.distribution-mcp/scheduled.yaml` and fired on the next `post_drain` call. Run `drain` from cron:
 
 ```bash
 # fire due posts every 5 minutes
 */5 * * * * npx -y content-distribution-mcp drain
 ```
 
-Or call the `post.drain` MCP tool directly from an agent.
+Or call the `post_drain` MCP tool directly from an agent.
 
 ## Environment variables
 

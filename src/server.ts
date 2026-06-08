@@ -30,14 +30,14 @@ const ContentSchema = z.object({
 });
 
 const VariantSchema = z.object({
-  channel: z.string().describe("Channel slug in the form 'platform' or 'platform:account', e.g. 'devto:main', 'reddit:ClaudeAI', 'linkedin:personal'. Use subreddit.list for reddit subreddit options."),
+  channel: z.string().describe("Channel slug in the form 'platform' or 'platform:account', e.g. 'devto:main', 'reddit:ClaudeAI', 'linkedin:personal'. Use subreddit_list for reddit subreddit options."),
   title: z.string().describe("Channel-specific title for this variant; can differ from content.title to fit platform norms, e.g. shorter for DEV.to or question-form for Reddit."),
-  body: z.string().describe("Channel-adapted body in Markdown or plain text per channel. Use channel.hints to check whether the channel supports Markdown."),
+  body: z.string().describe("Channel-adapted body in Markdown or plain text per channel. Use channel_hints to check whether the channel supports Markdown."),
   tags: z.array(z.string()).default([]).describe("Channel-specific tags for this variant; overrides content.tags when present; each adapter truncates or converts to platform limits."),
   canonical_url: z.string().url().optional().describe("Canonical URL override for this variant; overrides content.canonical_url for this channel only when set."),
   cta_block: z.string().optional().describe("CTA block override for this variant; overrides content.cta_block for this channel only; appended to body before publishing."),
   schedule_at: z.string().optional().describe("ISO-8601 datetime with timezone offset for future publishing, e.g. '2026-05-21T09:00:00+01:00'. Omit for immediate publishing."),
-  extras: z.record(z.unknown()).default({}).describe("Channel-specific knobs: flair (Reddit), category (GitHub Discussions), repo and series (Hashnode). Keys and types vary by adapter; use channel.hints to discover supported extras."),
+  extras: z.record(z.unknown()).default({}).describe("Channel-specific knobs: flair (Reddit), category (GitHub Discussions), repo and series (Hashnode). Keys and types vary by adapter; use channel_hints to discover supported extras."),
 });
 
 // --- Output schemas (raw shapes for registerTool) ----------------------------
@@ -65,7 +65,7 @@ const statusEntryShape = {
   live_url: z.string().nullable().describe("Public URL of the live post; null when not yet published."),
   published_at: z.string().nullable().describe("UTC ISO-8601 timestamp of the successful publish; null when not yet live."),
   error: z.string().nullable().describe("Last error message from the platform; null when no error."),
-  content_id: z.string().describe("Stable content identifier passed to post.publish / post.schedule; matches the content.id field."),
+  content_id: z.string().describe("Stable content identifier passed to post_publish / post_schedule; matches the content.id field."),
   retry_count: z.number().nullable().describe("Number of publish attempts made so far; null for first attempt."),
   next_retry_at: z.string().nullable().describe("UTC ISO-8601 of the next scheduled retry; null when not queued for retry."),
 } as const;
@@ -134,16 +134,16 @@ export function createServer() {
   const adapters = buildAdapterMap();
   const backend = buildBackend();
 
-  // --- post.publish ---
+  // --- post_publish ---
   server.registerTool(
-    "post.publish",
+    "post_publish",
     {
       title: "Publish variants to one or more channels immediately",
-      description: "Publish one or more channel variants immediately. Side effects: makes external HTTP requests to each channel platform; writes publish state to the local YAML backend; requires valid credentials in the named profile. Idempotent on (content.id, channel) — re-running with the same IDs returns cached state without re-posting. Use post.publish for immediate-only delivery; use post.schedule when any variant needs a future schedule_at; use post.drain to flush a previously built queue.",
+      description: "Publish one or more channel variants immediately. Side effects: makes external HTTP requests to each channel platform; writes publish state to the local YAML backend; requires valid credentials in the named profile. Idempotent on (content.id, channel) — re-running with the same IDs returns cached state without re-posting. Use post_publish for immediate-only delivery; use post_schedule when any variant needs a future schedule_at; use post_drain to flush a previously built queue.",
       inputSchema: {
         content: ContentSchema.describe("Content piece to publish: stable id (idempotency key), title, body_md, tags, and optional cover_image / canonical_url / cta_block / author fields. The id + channel pair is the deduplication key — the same id will not be re-posted."),
-        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug (e.g. 'devto:main', 'reddit:ClaudeAI'), the adapted title and body, optional schedule_at for future delivery, and channel extras such as flair. Use channel.hints to check per-channel constraints before composing."),
-        profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile.list to discover available names."),
+        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug (e.g. 'devto:main', 'reddit:ClaudeAI'), the adapted title and body, optional schedule_at for future delivery, and channel extras such as flair. Use channel_hints to check per-channel constraints before composing."),
+        profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile_list to discover available names."),
       },
       outputSchema: publishOutputShape,
       annotations: {
@@ -161,16 +161,16 @@ export function createServer() {
     },
   );
 
-  // --- post.schedule ---
+  // --- post_schedule ---
   server.registerTool(
-    "post.schedule",
+    "post_schedule",
     {
       title: "Schedule variants for future publishing",
-      description: "Enqueue channel variants with schedule_at for future publishing; variants without schedule_at are published immediately. Side effects: writes entries to the local YAML schedule store; makes external HTTP requests for any immediately-published variants; requires credentials in the named profile. Idempotent on (content.id, channel). Use post.schedule when any variant needs a future publish time; use post.publish for all-immediate delivery; use post.drain to process the scheduled queue later.",
+      description: "Enqueue channel variants with schedule_at for future publishing; variants without schedule_at are published immediately. Side effects: writes entries to the local YAML schedule store; makes external HTTP requests for any immediately-published variants; requires credentials in the named profile. Idempotent on (content.id, channel). Use post_schedule when any variant needs a future publish time; use post_publish for all-immediate delivery; use post_drain to process the scheduled queue later.",
       inputSchema: {
         content: ContentSchema.describe("Content piece to publish: stable id (idempotency key), title, body_md, tags, and optional cover_image / canonical_url / cta_block / author fields. The id + channel pair is the deduplication key — the same id will not be re-posted."),
-        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug, the adapted title and body, and optionally schedule_at (ISO-8601 with timezone) for future delivery. Variants without schedule_at are published immediately; variants with schedule_at are queued for post.drain. Use channel.hints to check per-channel constraints."),
-        profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile.list to discover available names."),
+        variants: z.array(VariantSchema).describe("One or more channel-specific publish targets. Each entry specifies the channel slug, the adapted title and body, and optionally schedule_at (ISO-8601 with timezone) for future delivery. Variants without schedule_at are published immediately; variants with schedule_at are queued for post_drain. Use channel_hints to check per-channel constraints."),
+        profile_name: z.string().describe("Name of the distribution profile (credentials store). Use profile_list to discover available names."),
       },
       outputSchema: scheduleOutputShape,
       annotations: {
@@ -188,12 +188,12 @@ export function createServer() {
     },
   );
 
-  // --- post.drain ---
+  // --- post_drain ---
   server.registerTool(
-    "post.drain",
+    "post_drain",
     {
       title: "Fire all scheduled posts due now",
-      description: "Fire all scheduled posts due at or before the given time boundary. Side effects: makes external HTTP requests for each due entry; writes results to the YAML backend. Idempotent — already-published (content.id, channel) pairs are skipped; no-op when no entries are due. Safe to call from cron. Use post.drain on a recurring schedule to flush the queue; use post.publish or post.schedule to add new content; use post.status to inspect results after drain runs.",
+      description: "Fire all scheduled posts due at or before the given time boundary. Side effects: makes external HTTP requests for each due entry; writes results to the YAML backend. Idempotent — already-published (content.id, channel) pairs are skipped; no-op when no entries are due. Safe to call from cron. Use post_drain on a recurring schedule to flush the queue; use post_publish or post_schedule to add new content; use post_status to inspect results after drain runs.",
       inputSchema: {
         now: z.string().optional().describe("ISO-8601 datetime boundary, e.g. '2026-05-21T09:00:00Z'; defaults to current UTC time when omitted."),
       },
@@ -212,12 +212,12 @@ export function createServer() {
     },
   );
 
-  // --- post.status ---
+  // --- post_status ---
   server.registerTool(
-    "post.status",
+    "post_status",
     {
       title: "Read publish state for content pieces",
-      description: "Return publish state for content pieces. Filters by content_id, channel, or both; returns all entries when neither is given. Side effects: read-only; no external HTTP calls; no auth needed. Deterministic given unchanged backend state. Use post.status to inspect what has been published, what is queued, or what errored; use post.publish, post.schedule, or post.drain to change state.",
+      description: "Return publish state for content pieces. Filters by content_id, channel, or both; returns all entries when neither is given. Side effects: read-only; no external HTTP calls; no auth needed. Deterministic given unchanged backend state. Use post_status to inspect what has been published, what is queued, or what errored; use post_publish, post_schedule, or post_drain to change state.",
       inputSchema: {
         content_id: z.string().optional().describe("Filter to a specific content piece by its stable ID; omit to return state for all content."),
         channel: z.string().optional().describe("Filter to a specific channel slug, e.g. 'devto', 'reddit:ClaudeAI'; omit to return state for all channels."),
@@ -247,12 +247,12 @@ export function createServer() {
     },
   );
 
-  // --- post.unpublish ---
+  // --- post_unpublish ---
   server.registerTool(
-    "post.unpublish",
+    "post_unpublish",
     {
       title: "Retract a published post (best-effort)",
-      description: "Best-effort delete of a published post on the target platform. Side effects: makes an external HTTP DELETE or update request; DEV.to sets published=false (soft delete); platforms without a delete API return success=false without error. Non-idempotent — calling on an already-deleted URL may return a platform 404. Use post.unpublish to retract a live post; use post.status first to obtain the live_url; use post.publish to re-publish after an unpublish.",
+      description: "Best-effort delete of a published post on the target platform. Side effects: makes an external HTTP DELETE or update request; DEV.to sets published=false (soft delete); platforms without a delete API return success=false without error. Non-idempotent — calling on an already-deleted URL may return a platform 404. Use post_unpublish to retract a live post; use post_status first to obtain the live_url; use post_publish to re-publish after an unpublish.",
       inputSchema: {
         live_url: z.string().describe("URL of the live published post to retract, e.g. 'https://dev.to/user/post-slug'."),
         channel: z.string().describe("Channel slug the post was published to, e.g. 'devto', 'hashnode', 'reddit:ClaudeAI'."),
@@ -284,12 +284,12 @@ export function createServer() {
     },
   );
 
-  // --- channel.hints ---
+  // --- channel_hints ---
   server.registerTool(
-    "channel.hints",
+    "channel_hints",
     {
       title: "Static per-channel metadata",
-      description: "Return static per-channel metadata: character limits, Markdown support flags, tag vocabulary, and CTA placement rules. Side effects: read-only; no external HTTP calls; no auth needed. Fully deterministic — returns compile-time adapter constants. Use channel.hints before composing a variant body to understand channel constraints; use post.publish or post.schedule once you have a valid variant.",
+      description: "Return static per-channel metadata: character limits, Markdown support flags, tag vocabulary, and CTA placement rules. Side effects: read-only; no external HTTP calls; no auth needed. Fully deterministic — returns compile-time adapter constants. Use channel_hints before composing a variant body to understand channel constraints; use post_publish or post_schedule once you have a valid variant.",
       inputSchema: {
         channel: z.string().describe("Channel platform name, e.g. 'devto', 'reddit', 'hashnode', 'bluesky'. Use the platform prefix only, not the full 'platform:account' form."),
       },
@@ -312,12 +312,12 @@ export function createServer() {
     },
   );
 
-  // --- profile.list ---
+  // --- profile_list ---
   server.registerTool(
-    "profile.list",
+    "profile_list",
     {
       title: "List configured distribution profiles",
-      description: "Return all distribution profile names configured in the YAML backend. Side effects: read-only; no external HTTP calls. Deterministic given backend state. Use profile.list to discover available profiles before calling post.publish, post.schedule, or subreddit.list; then pass the chosen name as profile_name.",
+      description: "Return all distribution profile names configured in the YAML backend. Side effects: read-only; no external HTTP calls. Deterministic given backend state. Use profile_list to discover available profiles before calling post_publish, post_schedule, or subreddit_list; then pass the chosen name as profile_name.",
       inputSchema: {},
       outputSchema: profileListOutputShape,
       annotations: {
@@ -334,12 +334,12 @@ export function createServer() {
     },
   );
 
-  // --- subreddit.list ---
+  // --- subreddit_list ---
   server.registerTool(
-    "subreddit.list",
+    "subreddit_list",
     {
       title: "List Subreddit Catalog entries",
-      description: "Return all subreddits in the Subreddit Catalog with cooldown windows, flair vocabulary, and last-posted metadata. Optionally filtered to subreddits allowed by the named profile. Side effects: read-only; no external HTTP calls. Deterministic given backend state. Use subreddit.list to select a subreddit and obtain flair IDs before composing a reddit: channel variant; pass flair in variant.extras.flair.",
+      description: "Return all subreddits in the Subreddit Catalog with cooldown windows, flair vocabulary, and last-posted metadata. Optionally filtered to subreddits allowed by the named profile. Side effects: read-only; no external HTTP calls. Deterministic given backend state. Use subreddit_list to select a subreddit and obtain flair IDs before composing a reddit: channel variant; pass flair in variant.extras.flair.",
       inputSchema: {
         profile_name: z.string().optional().describe("Optional profile name to filter subreddits to those allowed by that profile; omit to return the full catalog."),
       },
