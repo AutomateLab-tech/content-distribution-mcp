@@ -130,7 +130,7 @@ function buildBackend(): StateBackend {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "content-distribution-mcp", version: "2.2.4" });
+  const server = new McpServer({ name: "content-distribution-mcp", version: "3.0.0" });
   const adapters = buildAdapterMap();
   const backend = buildBackend();
 

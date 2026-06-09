@@ -117,6 +117,18 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 | `medium` | Browser fallback | returns `needs_browser` + compose URL |
 | `twitter` / `x` | Browser fallback | returns `needs_browser` + compose URL |
 
+## Optional Twitter/X source context
+
+This MCP owns distribution: channel hints, idempotent publish state, scheduling, and per-platform delivery. Keep live Twitter/X research as a separate upstream step before drafting the final `twitter` or `x` variant.
+
+For OpenClaw users, TweetClaw can provide optional source packets before this server publishes:
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw
+```
+
+Use TweetClaw for account-scoped context such as scrape tweets, search tweet replies, follower export, user lookup, direct messages, monitors, webhooks, and giveaway draw context. Then approve the final copy variant and call `post_publish` or `post_schedule` in content-distribution. TweetClaw is not a dependency of this MCP server.
+
 ## Example agent call
 
 ```jsonc

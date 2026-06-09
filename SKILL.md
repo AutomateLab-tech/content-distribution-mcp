@@ -1,7 +1,7 @@
 ---
 name: content-distribution
 description: Use when the user wants to publish a post, article, or announcement to multiple platforms at once — DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, or Twitter/X. Handles platform-specific format adaptation, idempotent re-publish, per-community anti-spam rules, and scheduling. Write your message once; this skill routes it everywhere.
-version: 2.2.1
+version: 3.0.0
 license: MIT
 homepage: https://github.com/AutomateLab-tech/content-distribution-mcp
 compatibility:
@@ -34,37 +34,52 @@ Pairs with the `@automatelab/content-distribution-mcp` server. Publishes content
 
 | Tool | Use when |
 |---|---|
-| `distribute_content` | Publish to one or more channels in a single call — the main entry point |
-| `get_channel_hints` | Get character limits, tag vocabularies, cooldowns, and formatting rules before writing variants |
-| `get_distribution_status` | Check what went live where; retry failed channels |
-| `schedule_distribution` | Queue a post for future publish (e.g. "post this tomorrow at 9am UTC") |
-| `list_scheduled` | View and manage queued posts |
-| `cancel_scheduled` | Remove a queued post |
-| `get_platform_config` | Inspect current auth / API key status per platform |
-| `test_connection` | Verify credentials before a real publish |
+| `post_publish` | Publish one or more channel variants immediately |
+| `post_schedule` | Queue variants with `schedule_at` and publish unscheduled variants now |
+| `post_drain` | Publish queued posts that are due now |
+| `post_status` | Check what went live, queued, or failed |
+| `post_unpublish` | Best-effort delete or unpublish a live post |
+| `channel_hints` | Get character limits, tag vocabularies, cooldowns, and formatting rules before writing variants |
+| `profile_list` | List configured distribution profiles |
+| `subreddit_list` | List configured subreddits, cooldowns, and flair vocabularies |
 
 ## Default workflow
 
 ```
-1. get_channel_hints(platforms: ["reddit", "twitter", "linkedin", ...])
-   → Read limits, cooldowns, flair options
+1. channel_hints({ channel: "reddit" }), channel_hints({ channel: "twitter" }), and channel_hints({ channel: "linkedin" })
+   Read limits, cooldowns, flair options
 
 2. (You) Draft platform-specific copy variants based on the hints
 
-3. distribute_content({
-     devto: { title, body_markdown, tags },
-     twitter: { text },
-     reddit: { subreddit, title, text, flair_id },
-     linkedin: { text },
-     ...
+3. post_publish({
+     content: { id, title, body_md, tags, canonical_url, author },
+     variants: [
+       { channel: "devto:main", title, body, tags, canonical_url },
+       { channel: "twitter", title, body, tags: [] },
+       { channel: "reddit:ClaudeAI", title, body, tags: [], extras: { flair: "Project" } },
+       { channel: "linkedin", title, body, tags: [] }
+     ],
+     profile_name: "default"
    })
 
-4. get_distribution_status(id) → confirm each channel succeeded
+4. post_status({ content_id: id }) → confirm each channel succeeded
 ```
 
 ## Idempotency
 
-Every `distribute_content` call returns a `distribution_id`. Calling it again with the same id and same targets is a no-op — safe to retry after a partial failure.
+`post_publish` and `post_schedule` are idempotent on `content.id` and `channel`. Calling them again with the same pair returns the existing state instead of reposting.
+
+## Optional Twitter/X source context
+
+Use this MCP to distribute finished channel variants. If a workflow needs live Twitter/X context before drafting a Twitter/X variant, keep that source-gathering step separate from distribution.
+
+One compatible pattern is:
+
+1. Use TweetClaw as a separate OpenClaw plugin when the user needs account-scoped source material such as scrape tweets, search tweet replies, follower export, user lookup, direct messages, monitors, webhooks, or giveaway draw context.
+2. Draft and approve the Twitter/X copy variant from that evidence.
+3. Use `channel_hints`, then `post_publish` or `post_schedule`, to route the final variant through content-distribution.
+
+TweetClaw is optional source context, not a dependency of this MCP server or skill.
 
 ## Server setup
 
@@ -92,7 +107,7 @@ Every `distribute_content` call returns a `distribution_id`. Calling it again wi
 }
 ```
 
-Requires Node 20+. Set platform API keys as environment variables — see the [README](https://github.com/AutomateLab-tech/content-distribution-mcp#configuration) for the full list.
+Requires Node 18+. Set platform API keys as environment variables - see the [README](https://github.com/AutomateLab-tech/content-distribution-mcp#configuration) for the full list.
 
 ---
 
