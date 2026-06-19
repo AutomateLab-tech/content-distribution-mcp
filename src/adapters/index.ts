@@ -3,6 +3,7 @@ import { HashnodeAdapter } from "./hashnode.js";
 import { GitHubDiscussionsAdapter } from "./github-discussions.js";
 import { RedditAdapter } from "./reddit.js";
 import { BlueskyAdapter } from "./bluesky.js";
+import { GetXAPITwitterAdapter } from "./getxapi-twitter.js";
 import { makeBrowserAdapter } from "./browser.js";
 import type { Variant, PublishResult, ChannelHints } from "../models.js";
 import type { Profile } from "../backends/base.js";
@@ -35,5 +36,9 @@ export function buildAdapterMap(): Record<string, ChannelAdapter> {
     twitter_browser: twitter,
     "twitter-browser": twitter,
     x: twitter,
+    twitter_getxapi: new GetXAPITwitterAdapter(),
+    "twitter-getxapi": new GetXAPITwitterAdapter(),
+    getxapi_twitter: new GetXAPITwitterAdapter(),
+    "getxapi-twitter": new GetXAPITwitterAdapter(),
   };
 }

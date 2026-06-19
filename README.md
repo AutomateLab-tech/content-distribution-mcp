@@ -116,6 +116,7 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 | `linkedin` | Browser fallback | returns `needs_browser` + compose URL |
 | `medium` | Browser fallback | returns `needs_browser` + compose URL |
 | `twitter` / `x` | Browser fallback | returns `needs_browser` + compose URL |
+| `twitter_getxapi` / `getxapi_twitter` | Auto (read+write) | `GETXAPI_API_KEY` (writes require `GETXAPI_ENABLE_ACTIONS=true`) |
 
 ## Example agent call
 
@@ -185,7 +186,7 @@ Agent (Claude Code / n8n / Cursor / any MCP host)
   ▼
 content-distribution-mcp  (this package, stdio transport)
   │  no LLM calls — pure I/O
-  ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · browser
+  ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · getxapi-twitter · browser
   └── backends/   yaml (post log · profiles · schedule queue · subreddit catalog)
 ```
 
