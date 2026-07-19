@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
     "prepare": "npm run build"
   },
   "dependencies": {

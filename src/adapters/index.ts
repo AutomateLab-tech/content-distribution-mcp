@@ -4,6 +4,7 @@ import { GitHubDiscussionsAdapter } from "./github-discussions.js";
 import { RedditAdapter } from "./reddit.js";
 import { BlueskyAdapter } from "./bluesky.js";
 import { makeBrowserAdapter } from "./browser.js";
+import { XquikTwitterAdapter } from "./xquik-twitter.js";
 import type { Variant, PublishResult, ChannelHints } from "../models.js";
 import type { Profile } from "../backends/base.js";
 
@@ -16,7 +17,7 @@ export interface ChannelAdapter {
 export function buildAdapterMap(): Record<string, ChannelAdapter> {
   const medium = makeBrowserAdapter("medium");
   const linkedin = makeBrowserAdapter("linkedin");
-  const twitter = makeBrowserAdapter("twitter");
+  const twitter = new XquikTwitterAdapter(makeBrowserAdapter("twitter"));
 
   return {
     devto: new DevToAdapter(),

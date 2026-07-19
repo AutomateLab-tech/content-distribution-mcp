@@ -1,6 +1,6 @@
 ---
 name: content-distribution
-description: Use when the user wants to publish a post, article, or announcement to multiple platforms at once — DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, or Twitter/X. Handles platform-specific format adaptation, idempotent re-publish, per-community anti-spam rules, and scheduling. Write your message once; this skill routes it everywhere.
+description: Use when the user wants to publish a post, article, or announcement to multiple platforms at once - DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, or Twitter/X. Handles platform-specific format adaptation, idempotent re-publish, per-community anti-spam rules, and scheduling. Write your message once; this skill routes it everywhere.
 version: 2.2.1
 license: MIT
 homepage: https://github.com/AutomateLab-tech/content-distribution-mcp
@@ -23,18 +23,18 @@ metadata:
 
 # content-distribution
 
-Pairs with the `@automatelab/content-distribution-mcp` server. Publishes content to 8+ channels with automatic platform-specific adaptation, idempotent state tracking, and per-community anti-spam enforcement.
+Pairs with the `@automatelab/content-distribution-mcp` server. Publishes content to 8+ channels with automatic platform-specific adaptation, idempotent state tracking, and per-community anti-spam enforcement. Twitter/X can use Hermes Tweet when a Hermes Tweet or Xquik key is configured, then fall back to browser compose when no key is set.
 
 ## What the MCP handles vs. what you handle
 
-**MCP handles:** OAuth, API retries, scheduling, idempotency, character limits, platform constraints, posting state.  
+**MCP handles:** OAuth, API retries, scheduling, idempotency, character limits, platform constraints, posting state.
 **You handle:** Writing the platform-specific copy variants (title, body, tags, tone per channel). The MCP returns per-channel hints to guide you.
 
 ## Tool overview
 
 | Tool | Use when |
 |---|---|
-| `distribute_content` | Publish to one or more channels in a single call — the main entry point |
+| `distribute_content` | Publish to one or more channels in a single call - the main entry point |
 | `get_channel_hints` | Get character limits, tag vocabularies, cooldowns, and formatting rules before writing variants |
 | `get_distribution_status` | Check what went live where; retry failed channels |
 | `schedule_distribution` | Queue a post for future publish (e.g. "post this tomorrow at 9am UTC") |
@@ -64,7 +64,7 @@ Pairs with the `@automatelab/content-distribution-mcp` server. Publishes content
 
 ## Idempotency
 
-Every `distribute_content` call returns a `distribution_id`. Calling it again with the same id and same targets is a no-op — safe to retry after a partial failure.
+Every `distribute_content` call returns a `distribution_id`. Calling it again with the same id and same targets is a no-op - safe to retry after a partial failure.
 
 ## Server setup
 
@@ -92,7 +92,9 @@ Every `distribute_content` call returns a `distribution_id`. Calling it again wi
 }
 ```
 
-Requires Node 20+. Set platform API keys as environment variables — see the [README](https://github.com/AutomateLab-tech/content-distribution-mcp#configuration) for the full list.
+Requires Node 20+. Set platform API keys as environment variables - see the [README](https://github.com/AutomateLab-tech/content-distribution-mcp#configure-credentials) for the full list.
+
+For automated Twitter/X publishing, set `XQUIK_API_KEY` plus `XQUIK_ACCOUNT`, or the aliases `HERMES_TWEET_API_KEY` plus `HERMES_TWEET_ACCOUNT`. Leave them unset to keep the browser compose fallback.
 
 ---
 
