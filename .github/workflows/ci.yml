@@ -22,11 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build and test
+        run: npm test
 
       - name: MCP introspection smoke test
         run: |
-          echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
-            | timeout 10 node dist/index.js 2>/dev/null \
-            | grep -q '"result"' && echo "introspection OK" || (echo "introspection FAILED" && exit 1)
+          output=$(echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            | timeout 10 node dist/index.js 2>/dev/null)
+          version=$(node -p "require('./package.json').version")
+          echo "$output" | grep -q '"result"'
+          echo "$output" | grep -q "\"version\":\"$version\""
+          echo "introspection OK"

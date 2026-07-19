@@ -1,6 +1,6 @@
 # content-distribution-mcp
 
-**Publish your content everywhere—without rewriting for every platform.**
+**Publish your content everywhere - without rewriting for every platform.**
 
 A MCP server that distributes a single piece of content across 8+ channels (DEV.to, Hashnode, GitHub Discussions, Reddit, Bluesky, LinkedIn, Medium, Twitter) with **automatic platform-specific adaptation**, idempotent publishing, per-community anti-spam rules, and centralized state management.
 
@@ -16,7 +16,7 @@ This MCP handles distribution complexity. Write your core message once, generate
 ## How It Works
 
 1. **Your agent** generates channel-specific copy variants (rewritten titles, trimmed text, platform-appropriate tags, audience-matched tone).
-2. **This MCP** publishes each variant with idempotency, OAuth, API retries, and scheduling—enforcing platform constraints automatically.
+2. **This MCP** publishes each variant with idempotency, OAuth, API retries, and scheduling - enforcing platform constraints automatically.
 3. **You control** which platforms get what. The MCP returns per-channel hints (character limits, tag vocabularies, cooldowns) but leaves creative decisions to you.
 
 No LLM calls inside. No walled-in agents. Just a clean API for multi-platform content distribution at scale.
@@ -31,7 +31,7 @@ Or add it permanently to your MCP host.
 
 ## Wire into your MCP host
 
-**Claude Code** — add to `.claude/mcp.json`:
+**Claude Code** - add to `.claude/mcp.json`:
 
 ```json
 {
@@ -44,7 +44,7 @@ Or add it permanently to your MCP host.
 }
 ```
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+**Claude Desktop** - add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -57,9 +57,9 @@ Or add it permanently to your MCP host.
 }
 ```
 
-**n8n** — use the MCP Client node, point it at `npx @automatelab/content-distribution-mcp` over stdio.
+**n8n** - use the MCP Client node, point it at `npx @automatelab/content-distribution-mcp` over stdio.
 
-**Cursor / Windsurf / any MCP host** — same `npx -y content-distribution-mcp` pattern.
+**Cursor / Windsurf / any MCP host** - same `npx -y content-distribution-mcp` pattern.
 
 ## Configure credentials
 
@@ -80,12 +80,14 @@ default:
     REDDIT_PASSWORD: "..."
     BLUESKY_IDENTIFIER: "you.bsky.social"
     BLUESKY_PASSWORD: "..."
+    XQUIK_API_KEY: "xq_..."
+    XQUIK_ACCOUNT: "@your_connected_x_account"
   subreddits:
     - ClaudeAI
     - LocalLLaMA
 ```
 
-Only set credentials for channels you intend to use. LinkedIn, Medium, and Twitter/X return `needs_browser` with a compose URL — no credentials needed.
+Only set credentials for channels you intend to use. LinkedIn and Medium return `needs_browser` with a compose URL. Twitter/X can publish through Hermes Tweet when `XQUIK_API_KEY` or `HERMES_TWEET_API_KEY` is configured, and otherwise keeps the browser compose fallback.
 
 ## MCP tool surface
 
@@ -95,7 +97,7 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 |---|---|
 | `post_publish` | Immediate publish; idempotent on `(content.id, channel)` |
 | `post_schedule` | Queue variants for `schedule_at`, publish the rest immediately |
-| `post_drain` | Fire all scheduled posts due now — run from cron |
+| `post_drain` | Fire all scheduled posts due now - run from cron |
 | `post_status` | Per-channel state for a content piece or channel |
 | `post_unpublish` | Best-effort delete (DEV.to sets unpublished; others vary) |
 | `channel_hints` | Per-channel metadata: char limits, Markdown support, tag vocab |
@@ -115,7 +117,20 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 | `bluesky` | Auto | `BLUESKY_IDENTIFIER` + `BLUESKY_PASSWORD` |
 | `linkedin` | Browser fallback | returns `needs_browser` + compose URL |
 | `medium` | Browser fallback | returns `needs_browser` + compose URL |
-| `twitter` / `x` | Browser fallback | returns `needs_browser` + compose URL |
+| `twitter` / `x` | Auto or browser fallback | `XQUIK_API_KEY` or `HERMES_TWEET_API_KEY`, plus `XQUIK_ACCOUNT` or `HERMES_TWEET_ACCOUNT`; falls back to `needs_browser` when no key is configured |
+
+### Twitter/X via Hermes Tweet
+
+The `twitter` and `x` channels can publish automatically through Hermes Tweet and Xquik. Add these fields to the selected Distribution Profile:
+
+```yaml
+default:
+  credentials:
+    XQUIK_API_KEY: "xq_your_key"
+    XQUIK_ACCOUNT: "@your_connected_x_account"
+```
+
+`HERMES_TWEET_API_KEY` and `HERMES_TWEET_ACCOUNT` are accepted aliases. `XQUIK_BASE_URL` can point to another compatible deployment when needed. If no Hermes Tweet key is configured, the adapter returns the original browser compose URL instead of failing.
 
 ## Example agent call
 
@@ -172,6 +187,9 @@ Or call the `post_drain` MCP tool directly from an agent.
 |---|---|---|
 | `DISTRIBUTION_BACKEND` | `yaml` | State backend (`yaml` only in v1) |
 | `DISTRIBUTION_BACKEND_DIR` | `~/.distribution-mcp` | Directory for YAML state files |
+| `XQUIK_API_KEY` / `HERMES_TWEET_API_KEY` | unset | Optional Hermes Tweet key for automated Twitter/X publishing |
+| `XQUIK_ACCOUNT` / `HERMES_TWEET_ACCOUNT` | unset | Connected X account used when a `twitter` / `x` channel has no account suffix |
+| `XQUIK_BASE_URL` | `https://xquik.com` | Optional compatible Hermes Tweet base URL |
 
 ## Requirements
 
@@ -184,7 +202,7 @@ Agent (Claude Code / n8n / Cursor / any MCP host)
   │  generates per-channel copy, calls MCP tools
   ▼
 content-distribution-mcp  (this package, stdio transport)
-  │  no LLM calls — pure I/O
+  │  no LLM calls - pure I/O
   ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · browser
   └── backends/   yaml (post log · profiles · schedule queue · subreddit catalog)
 ```
@@ -199,9 +217,9 @@ grep -ri "anthropic" node_modules/content-distribution-mcp/dist/  # returns noth
 
 ## Part of the AutomateLab stack
 
-- [agency-os](https://github.com/AutomateLab-tech/agency-os) — control plane
-- **content-distribution-mcp** — this package
-- [automatelab.tech](https://automatelab.tech) — blog and tutorials
+- [agency-os](https://github.com/AutomateLab-tech/agency-os) - control plane
+- **content-distribution-mcp** - this package
+- [automatelab.tech](https://automatelab.tech) - blog and tutorials
 
 ## License
 
