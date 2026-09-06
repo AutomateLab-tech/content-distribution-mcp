@@ -85,3 +85,27 @@ test("re-scheduling collapses a legacy queue that already holds duplicates for t
   assert.equal(devtoEntries[0].schedule_at, "2020-03-01T00:00:00Z");
   assert.equal(hashnodeEntries.length, 1, "an unrelated channel's entry must be left alone");
 });
+
+test("a plain '::' join would let two distinct (content_id, channel) pairs collide onto the same id", async () => {
+  const backend = makeBackend({ default: { credentials: {} } });
+  const profile = backend.loadProfile("default");
+
+  // "post" + "devto:main::x" and "post::devto:main" + "x" both join to
+  // "post::devto:main::x" under a naive `${a}::${b}` id. Scheduling both
+  // must keep two independent entries.
+  const variantA = { channel: "devto:main::x", title: "t", body: "b", tags: [], extras: {}, schedule_at: "2020-01-01T00:00:00Z" };
+  const variantB = { channel: "x", title: "t", body: "b", tags: [], extras: {}, schedule_at: "2020-01-01T00:00:00Z" };
+
+  const idA = await scheduleVariants(content("post"), [variantA], profile, {}, backend).then(r => r["devto:main::x"]);
+  const idB = await scheduleVariants(content("post::devto:main"), [variantB], profile, {}, backend).then(r => r["x"]);
+
+  assert.notEqual(idA, idB, "distinct (content_id, channel) pairs must not collide onto the same queue id");
+
+  const all = backend.listScheduled();
+  assert.equal(all.length, 2, "both entries must survive independently");
+
+  backend.dequeueScheduled(idA);
+  const remaining = backend.listScheduled();
+  assert.equal(remaining.length, 1, "dequeuing one id must not also remove the other pair's entry");
+  assert.equal(remaining[0].content_id, "post::devto:main");
+});

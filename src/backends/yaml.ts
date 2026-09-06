@@ -61,7 +61,12 @@ export class YamlBackend implements StateBackend {
 
   enqueueScheduled(contentId: string, channel: string, variant: unknown, scheduledAt: string): string {
     const queue = this.read<ScheduledItem[]>("scheduled.yaml", []);
-    const id = `${contentId}::${channel}`;
+    // JSON-encode the pair rather than joining with a delimiter: content_id
+    // and channel are arbitrary caller-supplied strings, so a plain
+    // "a::b" join can collide across different pairs (e.g. contentId="post",
+    // channel="devto:main::x" vs. contentId="post::devto:main", channel="x")
+    // and dequeueScheduled()'s exact-id filter would then drop both.
+    const id = JSON.stringify([contentId, channel]);
     // Drop every existing entry for this pair, not just the first match: a
     // queue written by the pre-fix version can already hold more than one
     // duplicate for the same (content_id, channel), and this is the only
