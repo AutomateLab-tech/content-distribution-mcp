@@ -62,11 +62,13 @@ export class YamlBackend implements StateBackend {
   enqueueScheduled(contentId: string, channel: string, variant: unknown, scheduledAt: string): string {
     const queue = this.read<ScheduledItem[]>("scheduled.yaml", []);
     const id = `${contentId}::${channel}`;
-    const idx = queue.findIndex(e => e.content_id === contentId && e.channel === channel);
-    const item: ScheduledItem = { id, content_id: contentId, channel, variant, schedule_at: scheduledAt };
-    if (idx >= 0) queue[idx] = item;
-    else queue.push(item);
-    this.write("scheduled.yaml", queue);
+    // Drop every existing entry for this pair, not just the first match: a
+    // queue written by the pre-fix version can already hold more than one
+    // duplicate for the same (content_id, channel), and this is the only
+    // path that touches that pair again.
+    const deduped = queue.filter(e => !(e.content_id === contentId && e.channel === channel));
+    deduped.push({ id, content_id: contentId, channel, variant, schedule_at: scheduledAt });
+    this.write("scheduled.yaml", deduped);
     return id;
   }
 
