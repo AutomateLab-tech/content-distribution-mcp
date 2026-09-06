@@ -61,8 +61,11 @@ export class YamlBackend implements StateBackend {
 
   enqueueScheduled(contentId: string, channel: string, variant: unknown, scheduledAt: string): string {
     const queue = this.read<ScheduledItem[]>("scheduled.yaml", []);
-    const id = `${contentId}::${channel}::${scheduledAt}`;
-    queue.push({ id, content_id: contentId, channel, variant, schedule_at: scheduledAt });
+    const id = `${contentId}::${channel}`;
+    const idx = queue.findIndex(e => e.content_id === contentId && e.channel === channel);
+    const item: ScheduledItem = { id, content_id: contentId, channel, variant, schedule_at: scheduledAt };
+    if (idx >= 0) queue[idx] = item;
+    else queue.push(item);
     this.write("scheduled.yaml", queue);
     return id;
   }
