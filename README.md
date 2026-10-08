@@ -116,6 +116,9 @@ Eight tools, dot-notation names form a navigable tree (`post.*`, `channel.*`, `p
 | `linkedin` | Browser fallback | returns `needs_browser` + compose URL |
 | `medium` | Browser fallback | returns `needs_browser` + compose URL |
 | `twitter` / `x` | Browser fallback | returns `needs_browser` + compose URL |
+| `twitter_getxapi` / `getxapi_twitter` | API (write) | `GETXAPI_API_KEY`, `GETXAPI_AUTH_TOKEN`, and `GETXAPI_ENABLE_ACTIONS=true` |
+
+GetXAPI uses an API key for the service and an X account `auth_token` cookie in `GETXAPI_AUTH_TOKEN`. Keep both in the distribution profile at runtime. Writes require explicit opt-in. The adapter rejects empty or over-280-character text instead of silently truncating it, and reports a live URL only after a successful response includes a tweet ID. See the [Create Tweet API documentation](https://docs.getxapi.com/docs/tweets/create-tweet).
 
 ## Example agent call
 
@@ -185,7 +188,7 @@ Agent (Claude Code / n8n / Cursor / any MCP host)
   ▼
 content-distribution-mcp  (this package, stdio transport)
   │  no LLM calls — pure I/O
-  ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · browser
+  ├── adapters/   devto · hashnode · github-discussions · reddit · bluesky · getxapi-twitter · browser
   └── backends/   yaml (post log · profiles · schedule queue · subreddit catalog)
 ```
 
