@@ -157,6 +157,8 @@ Re-running `post_publish` with the same `content.id` + `channel` pair returns th
 
 ## Scheduling
 
+Scheduled variants keep the profile selected at schedule time. Re-scheduling the same `(content.id, channel)` replaces the existing queued item, including duplicates left by older versions. Other content and channels keep their own queue entries. Legacy items without a saved profile use `default`.
+
 Variants with `schedule_at` (ISO-8601 with timezone, e.g. `"2026-05-21T09:00:00+00:00"`) are stored in `~/.distribution-mcp/scheduled.yaml` and fired on the next `post_drain` call. Run `drain` from cron:
 
 ```bash

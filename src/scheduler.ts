@@ -37,7 +37,7 @@ export async function scheduleVariants(
         results[variant.channel] = backend.enqueueScheduled(
           content.id,
           variant.channel,
-          { content, variant },
+          { content, variant, profile_name: profile.name },
           variant.schedule_at,
         );
       } else {
