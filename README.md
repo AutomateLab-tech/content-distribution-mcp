@@ -24,7 +24,7 @@ No LLM calls inside. No walled-in agents. Just a clean API for multi-platform co
 ## Install
 
 ```bash
-npx @automatelab/content-distribution-mcp
+npx -y @automatelab/content-distribution-mcp
 ```
 
 Or add it permanently to your MCP host.
@@ -57,9 +57,9 @@ Or add it permanently to your MCP host.
 }
 ```
 
-**n8n** — use the MCP Client node, point it at `npx @automatelab/content-distribution-mcp` over stdio.
+**n8n** — use the MCP Client node, point it at `npx -y @automatelab/content-distribution-mcp` over stdio.
 
-**Cursor / Windsurf / any MCP host** — same `npx -y content-distribution-mcp` pattern.
+**Cursor / Windsurf / any MCP host** — same `npx -y @automatelab/content-distribution-mcp` pattern.
 
 ## Configure credentials
 
@@ -161,7 +161,7 @@ Variants with `schedule_at` (ISO-8601 with timezone, e.g. `"2026-05-21T09:00:00+
 
 ```bash
 # fire due posts every 5 minutes
-*/5 * * * * npx -y content-distribution-mcp drain
+*/5 * * * * npx -y @automatelab/content-distribution-mcp drain
 ```
 
 Or call the `post_drain` MCP tool directly from an agent.
@@ -206,3 +206,7 @@ grep -ri "anthropic" node_modules/content-distribution-mcp/dist/  # returns noth
 ## License
 
 MIT
+
+## Maintenance and verification
+
+See [the maintenance guide](docs/maintenance-guide.md) for interpretation limits, current tool names where applicable, and reproducible verification.

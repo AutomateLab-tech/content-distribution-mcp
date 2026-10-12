@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { readFileSync as readMcpPackage } from "node:fs";
+const MCP_PACKAGE_VERSION: string = JSON.parse(readMcpPackage(new URL("../package.json", import.meta.url), "utf8")).version;
 import path from "path";
 import { buildAdapterMap } from "./adapters/index.js";
 import { YamlBackend } from "./backends/yaml.js";
@@ -130,7 +132,7 @@ function buildBackend(): StateBackend {
 }
 
 export function createServer() {
-  const server = new McpServer({ name: "content-distribution-mcp", version: "2.2.4" });
+  const server = new McpServer({ name: "content-distribution-mcp", version: MCP_PACKAGE_VERSION });
   const adapters = buildAdapterMap();
   const backend = buildBackend();
 
